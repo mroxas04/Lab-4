@@ -4,6 +4,7 @@
 #include <vector>
 #include <utility>
 #include <cstddef>
+#include <map>
 
 using power = size_t;
 using coeff = int;
@@ -66,17 +67,23 @@ public:
      * Addition (+) should support
      * 1. polynomial + polynomial
      * 2. polynomial + int
-     * 3. int + polynomial
+     * 3. int + polynomial //declared outside of class
      * 
      * Multiplication (*) should support
      * 1. polynomial * polynomial
      * 2. polynomial * int
-     * 3. int * polynomial
+     * 3. int * polynomial //declared outside of class
      * 
      * Modulo (%) should support
      * 1. polynomial % polynomial
      */
-    
+    polynomial operator+(const polynomial &other) const;
+    polynomial operator+(int value) const;
+
+    polynomial operator*(const polynomial &other) const;
+    polynomial operator*(int value) const;
+
+    polynomial operator%(const polynomial &other);
 
     /**
      * @brief Returns the degree of the polynomial
@@ -107,6 +114,19 @@ public:
      *  A vector of pairs representing the canonical form of the polynomial
      */
     std::vector<std::pair<power, coeff>> canonical_form() const;
+
+       /**
+     * @brief Removes zero terms from the polynomial
+     *
+     * @return void
+     *  
+     */ 
+    void removeZeroes();
+private:
+    std::map<int, int> terms;
 };
+//functions for symmetry
+polynomial operator+(int value, const polynomial &other); 
+polynomial operator*(int value, const polynomial &other); 
 
 #endif
