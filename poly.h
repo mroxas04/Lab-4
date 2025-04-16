@@ -9,9 +9,10 @@
 using power = size_t;
 using coeff = int;
 
+
 class polynomial
 {
-
+// template <typename Iter>
 public:
     /**
      * @brief Construct a new polynomial object that is the number 0 (ie. 0x^0)
@@ -30,8 +31,14 @@ public:
      *  The end of the container to copy elements from
      */
     template <typename Iter>
-    polynomial(Iter begin, Iter end);
-
+    polynomial(Iter begin, Iter end) {
+    for (auto i = begin; i != end; i++) {
+        if (i->second != 0) {
+            terms[i->first] += i->second;
+        }
+    }
+    removeZeroes();
+}
     /**
      * @brief Construct a new polynomial object from an existing polynomial object
      *
@@ -91,7 +98,7 @@ public:
      * @return size_t
      *  The degree of the polynomial
      */
-    size_t find_degree_of();
+    size_t find_degree_of() const;
 
     /**
      * @brief Returns a vector that contains the polynomial is canonical form. This
