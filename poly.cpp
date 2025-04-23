@@ -3,6 +3,14 @@
 #include <cstddef>
 #include <map>
 #include <iostream>
+#include <thread>
+#include <mutex>
+#include <optional>
+#include <chrono>
+#include <algorithm>
+#include <cmath>
+#include <utility>
+#include <cstddef>
 
 #include "poly.h"
 
@@ -33,22 +41,107 @@ polynomial operator+(int value, const polynomial &other) {
 }
 
 polynomial polynomial::operator*(const polynomial &other)const {
+    // polynomial result;
+
+    //Sequential implementation
+    // for (auto i = this->terms.begin(); i != this->terms.end(); i++) {
+    //     for (auto j = other.terms.begin(); j != other.terms.end(); j++) {
+    //         result.terms[i->first + j->first] += i->second * j->second;
+    //     }
+    // }
+    //Parallel implementation
+
+    // std::vector<std::thread> threads;
+    // std::mutex mx;
+    // for (auto i = this->terms.begin(); i != this->terms.end(); i++) {
+    //     for (auto j = other.terms.begin(); j != other.terms.end(); j++) {
+    //         threads.push_back(std::thread([&, i, j]() {
+    //            mx.lock();
+    //         result.terms[i->first + j->first] += i->second * j->second;
+    //            mx.unlock();
+    //         }
+    //         )
+    //         );
+    //     }
+    // }
+
+    // for (auto &t : threads) {
+    //     t.join();
+    // }
+
+    // result.removeZeroes();
+    // return result;
+
     polynomial result;
-    for (auto i = this->terms.begin(); i != this->terms.end(); i++) {
-        for (auto j = other.terms.begin(); j != other.terms.end(); j++) {
-            result.terms[i->first + j->first] += i->second * j->second;
+    std::mutex result_mutex;
+
+    int num_threads = 8;
+    std::vector<std::thread> threads;
+    std::vector<std::map<int, int>> local_results(num_threads);
+
+    size_t thread_size = (this->terms.size() + num_threads - 1) / num_threads;
+
+    for (int t = 0; t < num_threads; ++t) {
+        // threads.push_back(std::thread([&, t]() {
+            threads.emplace_back([&, t]() {
+            auto iter = this->terms.begin();
+            std::advance(iter, t * thread_size);
+            for (size_t i = 0; i < thread_size && iter != this->terms.end(); ++i, ++iter) {
+                for (const auto& [exp2, coeff2] : other.terms) {
+                    int exp_sum = iter->first + exp2;
+                    int coeff_product = iter->second * coeff2;
+                    local_results[t][exp_sum] += coeff_product;
+                }
+            }
+        // }));
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+\
+    for (const auto& local : local_results) {
+        for (const auto& [exp, coeff] : local) {
+            std::lock_guard<std::mutex> lock(result_mutex);
+            result.terms[exp] += coeff;
         }
     }
 
     result.removeZeroes();
     return result;
+
 }
 
 polynomial polynomial::operator*(int value) const {
+    // polynomial result;
+    // for (auto i = this->terms.begin(); i != this->terms.end(); i++) {
+    //     result.terms[i->first] = i->second * value;
+    // }
+    // result.removeZeroes();
+    // return result;
+
     polynomial result;
-    for (auto i = this->terms.begin(); i != this->terms.end(); i++) {
-        result.terms[i->first] = i->second * value;
+    std::mutex mx;
+    std::vector<std::thread> threads;
+
+    for (const auto& [exp, coeff] : this->terms) {
+        // threads.push_back(std::thread([&, exp, coeff]() {
+        threads.emplace_back([&, exp, coeff]() {
+            int product = coeff * value;
+            if (product != 0) {
+                mx.lock();
+                result.terms[exp] = product;
+                mx.unlock();
+            }
+        // }));
+        });
     }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
     result.removeZeroes();
     return result;
 }
@@ -57,8 +150,8 @@ polynomial operator*(int value, const polynomial &other) {
     return other * value;
 }
 
-polynomial polynomial::operator%(const polynomial &other) {
-    polynomial result = *this;
+polynomial polynomial::operator%(const polynomial &other) const {
+    polynomial result(*this);
     while (result.find_degree_of() >= other.find_degree_of()) {
   //  for (int i = 0; i < 3; i++) {
         auto it = result.terms.rbegin();

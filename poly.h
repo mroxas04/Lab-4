@@ -5,6 +5,7 @@
 #include <utility>
 #include <cstddef>
 #include <map>
+#include <thread>
 
 using power = size_t;
 using coeff = int;
@@ -90,7 +91,7 @@ public:
     polynomial operator*(const polynomial &other) const;
     polynomial operator*(int value) const;
 
-    polynomial operator%(const polynomial &other);
+    polynomial operator%(const polynomial &other) const;
 
     /**
      * @brief Returns the degree of the polynomial
