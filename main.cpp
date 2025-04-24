@@ -56,7 +56,8 @@ std::optional<double> poly_test_mult(polynomial& p1,
 int main()
 {
     /** We're doing (x+1)^2, so solution is x^2 + 2x + 1*/
-    std::vector<std::pair<power, coeff>> solution = {{0,0}};
+    // std::vector<std::pair<power, coeff>> solution = {{0,0}};
+    std::vector<std::pair<power, coeff>> solution = {{8,27},{7,54}, {6, 36}, {5,10}, {4,1}};
 
     /** This holds (x+1), which we'll pass to each polynomial */
     std::vector<std::pair<power, coeff>> poly_input = {{6,27},{5,27}, {4, 9}, {3,1}};

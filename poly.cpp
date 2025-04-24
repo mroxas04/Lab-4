@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <map>
 #include <iostream>
+// #include <unordered_map>
 #include <thread>
 #include <mutex>
 #include <optional>
@@ -49,68 +50,87 @@ polynomial polynomial::operator*(const polynomial &other)const {
     //         result.terms[i->first + j->first] += i->second * j->second;
     //     }
     // }
-    //Parallel implementation
+    //Parallel implementation 1
 
+    // polynomial result;
+    // std::mutex result_mutex;
+    // int prod_val;
+
+    //  int num_threads = 8;
+    // // unsigned int num_threads = std::thread::hardware_concurrency();
+    // //  printf("Number of threads: %u\n", num_threads);
     // std::vector<std::thread> threads;
-    // std::mutex mx;
-    // for (auto i = this->terms.begin(); i != this->terms.end(); i++) {
-    //     for (auto j = other.terms.begin(); j != other.terms.end(); j++) {
-    //         threads.push_back(std::thread([&, i, j]() {
-    //            mx.lock();
-    //         result.terms[i->first + j->first] += i->second * j->second;
-    //            mx.unlock();
+    // std::vector<std::map<int, int>> local_results(num_threads);
+
+
+    // size_t thread_size = (this->terms.size() + num_threads - 1) / num_threads;
+    // std::vector<std::pair<int, int>> term_vector(this->terms.begin(), this->terms.end());
+
+    // for (int t = 0; t < num_threads; ++t) {
+    // //    threads.push_back(std::thread([&, t]() {
+    //          threads.emplace_back([&, t]() {
+    //         for (size_t i = t * thread_size; i < std::min((t + 1) * thread_size, term_vector.size()); ++i) {
+    //             const auto& [exp1, coeff1] = term_vector[i];
+    //             for (auto j = other.terms.begin(); j != other.terms.end(); j++) {
+    //                 // prod_val = coeff1 * j->second;
+    //                 // if (prod_val != 0) {
+    //                 //     // std::lock_guard<std::mutex> lock(result_mutex);
+    //                 //     // result.terms[exp1 + j->first] += prod_val;
+    //                 //     local_results[t][exp1 + j->first] += prod_val;
+    //                 // }
+    //                 // std::lock_guard<std::mutex> lock(result_mutex);
+    //                 local_results[t].try_emplace(exp1 + j->first, 0);
+    //                 local_results[t][exp1 + j->first] += coeff1 * j->second;
+    //                 // local_results[t][exp1 + j->first] += coeff1 * j->second;             //change
+    //             }
     //         }
-    //         )
-    //         );
-    //     }
+    //     // }));  
+    //  }); 
     // }
-
-    // for (auto &t : threads) {
-    //     t.join();
-    // }
-
-    // result.removeZeroes();
-    // return result;
-
+  // parallel implementation 2
     polynomial result;
-    std::mutex result_mutex;
 
-    int num_threads = 100;
-    // unsigned int num_threads = std::thread::hardware_concurrency();
+    std::vector<std::unordered_map<int, int>> local_results;
     std::vector<std::thread> threads;
-    std::vector<std::map<int, int>> local_results(num_threads);
 
-    size_t thread_size = (this->terms.size() + num_threads - 1) / num_threads;
-    std::vector<std::pair<int, int>> term_vector(this->terms.begin(), this->terms.end());
+    unsigned int num_threads = std::thread::hardware_concurrency();
+    //  printf("1/16 Number of threads: %u\n", num_threads);
+    // int num_threads = 6;
+    local_results.resize(num_threads);
 
-    for (int t = 0; t < num_threads; ++t) {
-        // threads.push_back(std::thread([&, t]() {
-           // auto iter = this->terms.begin();
-            // std::advance(iter, t * thread_size);
-            // for (size_t i = 0; i < thread_size && iter != this->terms.end(); ++i, ++iter) {
-            //     for (const auto& [exp2, coeff2] : other.terms) {
-            //         int exp_sum = iter->first + exp2;
-            //         int coeff_product = iter->second * coeff2;
-            //         local_results[t][exp_sum] += coeff_product;
-            //     }
-            // }
-            for (size_t i = t * thread_size; i < std::min((t + 1) * thread_size, term_vector.size()); ++i) {
-                const auto& [exp1, coeff1] = term_vector[i];
+    size_t total_terms = this->terms.size();
+    size_t chunk_size = (total_terms + num_threads - 1) / num_threads;
+
+    auto iter = this->terms.begin();
+
+    for (unsigned int t = 0; t < num_threads; ++t) {
+        auto begin = iter;
+
+        size_t remaining = static_cast<size_t>(std::distance(iter, this->terms.end()));
+        size_t count = std::min(chunk_size, remaining);
+        
+        std::advance(iter, count);
+        auto end = iter;
+
+        threads.push_back(std::thread([=, &other, &local_results]() {
+            for (auto i = begin; i != end; ++i) {
+                int exp1 = i->first;
+                int coeff1 = i->second;
                 for (const auto& [exp2, coeff2] : other.terms) {
                     local_results[t][exp1 + exp2] += coeff1 * coeff2;
                 }
             }
-
-       //  }));
-       
+        }
+        )
+        );
     }
 
-
-
+    // Join all threads
     for (auto& t : threads) {
         t.join();
     }
 
+    // Combine results from all threads
     for (const auto& local : local_results) {
         for (const auto& [exp, coeff] : local) {
             result.terms[exp] += coeff;
@@ -118,6 +138,7 @@ polynomial polynomial::operator*(const polynomial &other)const {
     }
 
     result.removeZeroes();
+    // result.canonical_form();
     return result;
 
 }
@@ -129,30 +150,6 @@ polynomial polynomial::operator*(int value) const {
     }
     result.removeZeroes();
     return result;
-
-    // polynomial result;
-    // std::mutex mx;
-    // std::vector<std::thread> threads;
-
-    // for (const auto& [exp, coeff] : this->terms) {
-    //     // threads.push_back(std::thread([&, exp, coeff]() {
-    //     threads.emplace_back([&, exp, coeff]() {
-    //         int product = coeff * value;
-    //         if (product != 0) {
-    //             mx.lock();
-    //             result.terms[exp] = product;
-    //             mx.unlock();
-    //         }
-    //     // }));
-    //     });
-    // }
-
-    // for (auto& t : threads) {
-    //     t.join();
-    // }
-
-    // result.removeZeroes();
-    // return result;
 }
 
 polynomial operator*(int value, const polynomial &other) {
@@ -163,12 +160,12 @@ polynomial polynomial::operator%(const polynomial &other) const {
     polynomial result(*this);
     while (result.find_degree_of() >= other.find_degree_of()) {
   //  for (int i = 0; i < 3; i++) {
-        auto it = result.terms.rbegin();
-        auto it2 = other.terms.rbegin();
-        // std::cout << "it Power: " << it->first << " Coeff: " << it->second << std::endl;
-        // std::cout << "it2 Power: " << it2->first << " Coeff: " << it2->second << std::endl;
-        int power = it->first - it2->first;
-        int coeff = it->second / it2->second;
+        auto iter = result.terms.rbegin();
+        auto iter2 = other.terms.rbegin();
+        // std::cout << "iter Power: " << iter->first << " Coeff: " << iter->second << std::endl;
+        // std::cout << "iter2 Power: " << iter2->first << " Coeff: " << iter2->second << std::endl;
+        int power = iter->first - iter2->first;
+        int coeff = iter->second / iter2->second;
        //   std::cout << "div Power: " << power << " Coeff: " << coeff << std::endl;
         polynomial temp;
         temp.terms[power] = coeff;

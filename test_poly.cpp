@@ -79,6 +79,8 @@ int main() {
 
     polynomial result = p1 * p2;
 
+    auto result_con = result.canonical_form();
+
     auto end = high_resolution_clock::now();
 
     // Write result to file
@@ -88,3 +90,39 @@ int main() {
     cout << "Polynomial multiplication took " << duration << " ms" << endl;
     return 0;
 }
+  // parallel implementation 2
+    // polynomial result;
+
+    // std::vector<std::unordered_map<int, int>> local_results;
+    // std::vector<std::thread> threads;
+
+    // unsigned int num_threads = std::thread::hardware_concurrency() / 16;
+    // // printf("1/16 Number of threads: %u\n", num_threads);
+    // // int num_threads = 8;
+    // local_results.resize(num_threads);
+
+    // size_t total_terms = this->terms.size();
+    // size_t chunk_size = (total_terms + num_threads - 1) / num_threads;
+
+    // auto it = this->terms.begin();
+
+    // for (unsigned int t = 0; t < num_threads; ++t) {
+    //     auto begin = it;
+
+    //     size_t remaining = static_cast<size_t>(std::distance(it, this->terms.end()));
+    //     size_t count = std::min(chunk_size, remaining);
+        
+    //     std::advance(it, count);
+    //     auto end = it;
+
+    //     threads.push_back(std::thread([=, &other, &local_results]() {
+    //         for (auto i = begin; i != end; ++i) {
+    //             int exp1 = i->first;
+    //             int coeff1 = i->second;
+    //             for (const auto& [exp2, coeff2] : other.terms) {
+    //                 local_results[t][exp1 + exp2] += coeff1 * coeff2;
+    //             }
+    //         }
+    //     }));
+    // }
+    
