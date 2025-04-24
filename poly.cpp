@@ -75,8 +75,8 @@ polynomial polynomial::operator*(const polynomial &other)const {
     polynomial result;
     std::mutex result_mutex;
 
-    int num_threads = 8;
-    //unsigned int num_threads = std::thread::hardware_concurrency();
+    int num_threads = 100;
+    // unsigned int num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads;
     std::vector<std::map<int, int>> local_results(num_threads);
 
@@ -239,4 +239,14 @@ polynomial& polynomial::operator=(const polynomial &other) {
         this->terms = other.terms;
     }
     return *this; 
+}
+
+
+std::vector<std::pair<size_t, int>> polynomial::to_vector() const {
+    std::vector<std::pair<size_t, int>> result;
+    for (const auto& [power, coeff] : terms) {
+        if (coeff != 0)
+            result.emplace_back(power, coeff);
+    }
+    return result;
 }

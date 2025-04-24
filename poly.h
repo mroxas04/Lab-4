@@ -130,11 +130,13 @@ public:
      *  
      */ 
     void removeZeroes();
+    std::vector<std::pair<size_t, int>> to_vector() const;
 private:
     std::map<int, int> terms;
 };
 //functions for symmetry
 polynomial operator+(int value, const polynomial &other); 
 polynomial operator*(int value, const polynomial &other); 
+
 
 #endif
